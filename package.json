@@ -1,0 +1,27 @@
+{
+	"name": "Goby Proxy",
+	"publisher": "GobySec",
+	"description": "设置Goby前端代理",
+	"version": "0.1.0",
+	"icon": "src/assets/img/proxy.svg",
+	"engines": "1.6.170",
+	"initEvents": "",
+	"main": "./src/extension.js",
+	"contributes": {
+		"views": {
+			"toolbar": [
+				{
+					"command": "setProxy",
+					"title": "Goby Proxy",
+					"tips": "Goby Proxy",
+					"icon": "src/assets/img/proxy.svg"
+				}
+			]
+		}
+	},
+	"scripts": {},
+	"devDependencies": {},
+	"dependencies": {
+		"proxy-agent": "^5.0.0"
+	}
+}

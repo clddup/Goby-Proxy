@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./assets/elementui/index.css">
+  <title>Document</title>
+  <style>
+    [v-cloak]{
+        display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app" v-cloak>
+    <h3>设置Goby前端代理</h3>
+    <el-form ref="form" label-width="80px">
+      <el-form-item label="Proxy URL">
+        <el-input size="mini" v-model="config.proxy"></el-input>
+      </el-form-item>
+      <el-form-item label="当前状态">
+        <el-switch v-model="config.status" @change="changeStatus">
+        </el-switch>
+      </el-form-item>
+      <el-button size="mini" type="primary" @click="checkProxy">测试代理</el-button>
+      <el-button size="mini" type="primary" @click="setProxy">设置代理</el-button>
+    </el-form>
+  </div>
+</body>
+<script src="./assets/js/vue.min.js"></script>
+<script src="./assets/elementui/index.js"></script>
+<script type="module">
+  const path = top.require('path');
+  const fs = top.require('fs')
+  const ProxyAgent = top.require(path.join(goby.__dirname, '../node_modules/proxy-agent'))
+  delete top.require.cache[top.require.resolve(path.join(goby.__dirname, 'config.json'))]
+  let config = top.require(path.join(goby.__dirname, 'config.json'))
+  const url = top.require('url')
+  let session = top.require('@electron/remote').session.defaultSession
+  new Vue({
+    el: "#app",
+    data() {
+      return {
+        config
+      }
+    },
+    methods: {
+      getConfig() {
+        delete top.require.cache[top.require.resolve(path.join(goby.__dirname, 'config.json'))]
+        return top.require(path.join(goby.__dirname, 'config.json'))
+      },
+      changeStatus(status) {
+        if (status) {
+          this.startProxy(config.proxy).then(res => {
+            goby.showSuccessMessage('Success')
+          }).catch(error => {
+            this.$set(this.config, 'status', false)
+            goby.showErrorMessage(error)
+          })
+        } else {
+          this.closeProxy()
+        }
+      },
+      checkProxy() {
+        return new Promise((resolve, reject) => {
+          if(!this.checkURL(this.config.proxy)){
+              goby.showErrorMessage('proxy error')
+              reject('proxy error')
+              return;
+          }
+          let http = top.require('http')
+          let agent = new ProxyAgent(this.config.proxy)
+          let req = http.get('http://www.baidu.com', {
+            agent
+          }, res => {
+            let list = [];
+            res.on('data', chunk => {
+              list.push(chunk);
+            });
+            res.on('end', () => {
+              let data = top.Buffer.concat(list).toString()
+              console.log(data);
+              goby.showSuccessMessage('Success')
+              resolve()
+            })
+          }).on('error', error => {
+            console.log(error)
+            goby.showErrorMessage(error)
+          })
+        })
+
+      },
+      setStatus(){
+        let config = this.getConfig()
+        fs.writeFileSync(
+          path.join(goby.__dirname, 'config.json'),
+          JSON.stringify({
+            ...config,
+            status: this.config.status
+          }, null, 4)
+        )
+      },
+      setProxy() {
+        let config = this.getConfig()
+        fs.writeFileSync(
+          path.join(goby.__dirname, 'config.json'),
+          JSON.stringify({
+            ...config,
+            proxy: this.config.proxy
+          }, null, 4)
+        )
+        if(this.config.status){
+          this.startProxy(this.config.proxy).then(res => {
+            goby.showSuccessMessage('Success')
+          }).catch(error => {
+            this.$set(this.config, 'status', false)
+            goby.showErrorMessage(error)
+          })
+        }else{
+          goby.showSuccessMessage('Success')
+        }
+        
+      },
+      startProxy(proxy) {
+        return new Promise((resolve, reject) => {
+          try {
+            if(!this.checkURL(proxy)){
+              reject('proxy error')
+              return;
+            }
+            let agent = new ProxyAgent(proxy)
+            let http = top.require('http')
+            let https = top.require('https')
+            http.globalAgent = https.globalAgent = agent
+            session.setProxy({
+              proxyRules: proxy
+            })
+            this.setStatus()
+            resolve()
+          } catch (error) {
+            reject(error)
+          }
+        })
+      },
+      closeProxy() {
+        top.require('http').globalAgent = top.oldHttpAgent
+        top.require('https').globalAgent = top.oldHttpsAgent
+        session.setProxy({
+          proxyRules: ''
+        })
+        this.setStatus()
+      },
+      checkURL(string){
+        var protocolAndDomainRE = /^(?:\w+:)?\/\/(\S+)$/;
+        var localhostDomainRE = /^localhost[\:?\d]*(?:[^\:?\d]\S*)?$/
+        var nonLocalhostDomainRE = /^[^\s\.]+\.\S{2,}$/;
+        if (typeof string !== 'string') {
+          return false;
+        }
+
+        var match = string.match(protocolAndDomainRE);
+        if (!match) {
+          return false;
+        }
+
+        var everythingAfterProtocol = match[1];
+        if (!everythingAfterProtocol) {
+          return false;
+        }
+
+        if (localhostDomainRE.test(everythingAfterProtocol) ||
+            nonLocalhostDomainRE.test(everythingAfterProtocol)) {
+          return true;
+        }
+
+        return false;
+      }
+    },
+
+    mounted() {
+
+    },
+  })
+</script>
+
+</html>
