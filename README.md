@@ -1,5 +1,5 @@
 ## Quick start
-1. 安装
+1. 安装(请自行执行npm install 安装依赖)
 2. 从工具栏打开插件页面
 3. 配置代理
     - Proxy URL : 代理地址
