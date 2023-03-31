@@ -1,6 +1,6 @@
 {
 	"name": "Goby Proxy",
-	"publisher": "GobySec",
+	"publisher": "cl-ddup",
 	"description": "设置Goby前端代理",
 	"version": "0.1.0",
 	"icon": "src/assets/img/proxy.svg",
